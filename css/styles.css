@@ -1,0 +1,52 @@
+.links {
+  stroke: #000;
+  stroke-opacity: 0.2;
+}
+
+.polygons {
+  fill: none;
+  stroke: #000;
+}
+
+.polygons :first-child {
+  fill: #f00;
+}
+
+.sites {
+  fill: #000;
+  stroke: #fff;
+}
+
+.sites :first-child {
+  fill: #fff;
+}
+
+.county {
+    fill: none;
+    stroke: #aaa;
+    stroke-width: 0.3px;
+}
+
+.state {
+    fill: none;
+    stroke: #aaa;
+    stroke-width: 0.5px;
+}
+
+.country {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 0.75px;
+}
+
+.trail-marker {
+  fill: #4682b4;
+}
+
+.npt-path {
+  fill: none;
+  stroke: #4682b4;
+  stroke-width: 1.0;
+  opacity: 1.0;
+}
+

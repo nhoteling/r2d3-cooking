@@ -1,2 +1,3 @@
-# r2d3-cooking
-Cookbook for using r2d3 with RMarkdown
+# R2D3-Cooking
+
+Some notes and things on the r2d3 package

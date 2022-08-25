@@ -1,0 +1,51 @@
+.circle-test {
+  fill: #009933;
+  border-width: 0.5px;
+  border-color: #505050;
+}
+
+.circle-test:hover {
+  fill: #ff0000;
+}
+
+
+.circle-test2 {
+  fill: #993300;
+  border-width: 0.5px;
+  border-color: #505050;
+}
+
+.circle-test2:hover {
+  fill: #ff0000;
+}
+
+.rect-test2 {
+  fill: #ff9966;
+  border-width: 0.5px;
+  border-color: #505050;
+}
+
+.rect-test2:hover {
+  fill: #ff0000;
+}
+
+
+
+.circle-tester, .rect-tester {
+  background-color: #D3D3D3;
+  border: 2px solid #505050;
+  padding: 5px;
+  margin: 5px;
+}
+
+
+.trail-marker {
+  fill: #4682b4;
+}
+
+.npt-path {
+  fill: none;
+  stroke: #4682b4;
+  stroke-width: 1.0;
+  opacity: 1.0;
+}

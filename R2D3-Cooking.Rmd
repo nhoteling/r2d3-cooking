@@ -1,0 +1,307 @@
+---
+title: "Cooking with R2D3"
+author: "Nathan Hoteling"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    self_contained: true
+    keep_md: false
+  css: "css/styles.css"
+---
+
+```{r setup, include=FALSE}
+# 
+library(r2d3)
+library(jsonlite)
+
+# For some R things
+library(dplyr)
+library(rsvg)
+```
+<hr>
+<br>
+<br>
+
+<b>The basic plan for this document:</b> 
+
+- The Standard Simple Example  
+- Getting Data to D3  
+  - Chunk header  
+  - Chunk-to-chunk  
+  - External Files  
+  - More Complex data  
+- External Dependencies  
+  - CSS  
+  - JS dependencies  
+  - External D3 Scripts  
+- Multiple Containers  
+- Other/Future  
+  - Shirley Wu SVG tutorial  
+  - Troubleshooting  
+  - Mix RMarkdown & pure D3  
+  - File/Folder Organization  
+- More complex examples  
+
+<br>
+<br>
+
+## A Simple Example
+
+The [RMarkdown Cookbook](https://bookdown.org/yihui/rmarkdown-cookbook/d3.html) has a brief self-contained example for how to create a D3 visualization within a D3 Code Chunk in RMarkdown.  In this example, the data are passed to D3 inside the chunk header (Note that, in this document, the text string following !preview is the text included in the chunk header).  To run this, the `r2d3` package needs to be loaded first in an R Code Chunk or (preferably) in the R setup chunk.   
+
+<b>D3 Code Chunk:</b>
+```{d3, data=runif(10), options=list(color='steelblue'), height=160}
+// !preview d3, data=runif(10), options=list(color='steelblue'), height=160
+
+// D3 code chunk
+svg.selectAll('rect')
+  .data(data)
+  .enter()
+    .append('rect')
+      .attr('width', function(d) { return d * 672; })
+      .attr('height', '10px')
+      .attr('y', function(d, i) { return i * 16; })
+      .attr('fill', options.color);
+```
+<br>
+<br>
+
+## Getting Data to D3
+
+The main benefit of using the `r2d3` package is that we can do our analysis with R and then make a customized, interactive visualization with D3.  For this reason, the most common data flow is to pass from an R code chunk to a D3 code chunk.  However, there are a number of use cases where we might also need to pass data to D3 with other methods, so we will also look at reading external files, and more complex data structures.
+<br>
+<br>
+
+### Chunk-to-Chunk
+
+A simple vector can be passed as-is by including "data = dfdata" in the D3 chunk header.  The example here is adapted from _Interactive Visualization for the Web_, edited according to some stuff I found on the [r2d3 github issues page](https://github.com/rstudio/r2d3/issues/22).
+
+<b>R Code Chunk:</b>
+```{r}
+# library(r2d3)                   # load the package first
+dfdata <- c(5, 10, 15, 20, 25)    # Create a simple vector
+```
+
+<b>D3 Code Chunk:</b>
+```{d3, data=dfdata, height=100}
+// !preview d3, data=dfdata, height=100
+
+//
+// Note that r2d3 does a lot of things under the hood, so
+// many of the steps carried out in a typical d3.js script
+// are not done here; ie: declaring the svg
+//
+
+// D3 code here:
+svg.selectAll("circle")
+  .data(data)
+  .enter()
+    .append("circle")
+      .attr("cx", function(d, i) {
+        return (i * 50) + 50;
+      })
+      .attr("cy", 50)
+      .attr("r", function(d) {
+        return d;
+      })
+      .attr("fill", "steelblue")
+      .on("mouseover",function() { d3.select(this) .attr("fill", "orange"); })
+      .on("mouseout", function() { d3.select(this) .attr("fill", "steelblue"); })
+```
+<br>
+<br>
+
+### External Files
+
+External files can generally be read with an R code chunk and passed to D3 in the same way,
+
+<b>R Code Chunk:</b>
+```{r}
+df.br <- read.csv("data/nbwys-by-city-va.csv") %>%
+  filter(brewery >= 5)
+```
+
+<b>D3 Code Chunk:</b>
+```{d3, data=df.br, height=300}
+// !preview d3, data=df.br, height=300
+
+// D3 code here:
+svg.selectAll('rect')
+  .data(data)
+  .enter()
+    .append('rect')
+      .attr('width', function(d) { return d.brewery*10; })
+      .attr('height', '25px')
+      .attr('y', function(d, i) { return i * 30; })
+      .attr('fill', '#ff704d');
+      
+svg.selectAll('text')
+  .data(data)
+  .enter()
+    .append('text')
+    .attr('y', function(d, i) { return i*30 + 5; })
+    .attr('x', function(d) { return d.brewery*10+5; })
+    .text(function(d) { return d.city; })
+    .attr('font-size', '1.2rem')
+    .attr('fill', '#404040')
+    .attr('text-align', 'left')
+    .attr('alignment-baseline', 'hanging');
+    
+```
+<br>
+<br>
+
+### More Complex Data
+
+In some cases, we might want to send multiple data files or more complex data to D3.  In this case we can craft together a complex data structure in R and then pass it over to the D3 code chunk the same way we did above.
+
+Here we read a topojson file with `jsonlite` and pass it to D3.  This requires reading the external D3 add-on topojson.js.
+
+<b>R Code Chunk:</b>
+```{r}
+county_map <- jsonlite::read_json("data/json/10m.json")
+```
+
+<b>D3 Code Chunk:</b>
+```{d3, data=county_map, dependencies = c("js/topojson.js"), d3_version=4, height=300}
+// !preview d3, data=county_map, dependencies = "js/topojson.js", d3_version=4, width=960, height=600
+
+var projection = d3.geoIdentity().scale(0.5);
+var path = d3.geoPath().projection(projection);
+                
+// states
+svg.append("path")
+  .attr("stroke","#aaa")
+  .attr("stroke-width",0.5)
+  .attr("fill", "none")
+  .attr("d", path(topojson.mesh(data, data.objects.states, function(a,b) {return a !== b; })));
+                
+// nation
+svg.append("path")
+  .attr("stroke","#aaa")
+  .attr("stroke-width",0.75)
+  .attr("fill", "none")
+  .attr("d", path(topojson.feature(data, data.objects.nation)));
+```
+<br>
+<br>
+
+In th next case we want to read multiple files, so we read them in with the appropriate R functions, combine into a list, and then convert to JSON via `jsonlite`.  Also, instead of adding a separate code chunk for the D3 script, I copied it to an external JS file and run it via the r2d3 function, which basically takes the same inputs that were previously entered into the D3 Code chunk header.
+
+<b>R Code Chunk</b>
+```{r}
+df.nodes <- read.csv("data/nodes.csv")
+df.edges <- read.csv("data/edges.csv")
+
+d.data <- list(nodes=df.nodes, edges=df.edges)
+dd <- jsonlite::toJSON(d.data)
+
+r2d3(data=dd, script="js/beer-network.js", height=600)
+```
+
+<br>
+<br>
+
+## External Dependencies
+
+When our code starts to get more complex it makes sense to start breaking things into separate files.  We already saw one example in the county map above, where `topojson.js` was called in the D3 Code Chunk.  There are several other D3 add-ons that work in a similar manner, including `d3-tip.js`, `d3-legend.js`, and `d3-annotation.js`.  At some point it also makes sense to define styles in an external CSS file, and to put the D3 code into its own JS file.
+
+<br>
+<br>
+
+### External CSS & D3 Script
+
+There are, in principle, several options for including external CSS files.  According to the r2d3 [documentation](https://rstudio.github.io/r2d3/articles/dependencies.html) plus some experimentation, these include,  
+1. Include in the RMarkdown header  <b>Not sure if this works</b>  
+2. Wrap some CSS code into the appropriate HTML tags in the RMarkdown document   
+3. Add a CSS code chunk  
+4. Include a file called "styles.css" in the same directory as the RMarkdown file  
+5. If an external JS file is used, include a CSS file with the same name  
+6. Explicitly include the CSS file in the D3 code chunk header <b>Not sure if this works</b>  
+7. Explicitly include the CSS file in an r2d3 function call  
+
+For organizational purposes, I prefer to use option 7, but I have also used option 3 with some success.  I'm not entirely sure if options 1 or 2 will work and I can never seem to get option 6 to really work, but I don't see offhand why they wouldn't.  
+
+Below is an example of option 7 with an external D3 script called via the r2d3 function.  All of the colors and the hover behavior for the circles are defined in the CSS file.
+
+<b>R Code Chunk:</b>
+```{r}
+dfdata2 <- c(10, 5, 15, 8, 25)
+
+r2d3(data=dfdata2, script="js/circle-test.js", css="css/test-styles.css", height=100)
+```
+<br>
+<br>
+
+### Multiple Containers
+
+To create multiple containers (ie: for multiple plots) use the option container = "div" instead of the default "svg".  Then, the SVG containers can be defined in the JS file as would normally be done in a pure d3.js script.
+
+```{r}
+
+dfdata2 <- c(10, 5, 15, 8, 25)
+
+r2d3(data=dfdata2, script="js/containers-test.js", 
+     container="div",
+     css="css/test-styles.css", 
+     height=100)
+```
+<br>
+<br>
+
+
+### Slider Bar
+
+Create a slider bar to control the position of this dot.  This example uses multiple containers, as in the example above, plus some additional interaction.  Also, styles are set with CSS, and an external D3 library is used for the slider.
+
+```{r}
+npt <- jsonlite::read_json("data/npt-map.json")
+r2d3(data=npt, 
+     script="js/npt-map.js", 
+     container="div",
+     dependencies = c("js/d3-simple-slider.min.js"),
+     css="css/test-styles.css",
+     height=400)
+```
+
+<br>
+<br>
+<br>
+<br>
+
+<b>TODO</b>
+
+- More fun stuff: interactions  
+- brushing: https://bl.ocks.org/robyngit/89327a78e22d138cff19c6de7288c1cf  
+
+
+
+## References
+
+More to do here...
+
+<b>R2D3 Documentation and Examples</b>  
+https://rstudio.github.io/r2d3/index.html  
+https://lajh87.gitlab.io/r2d3examples/ 
+https://datatricks.co.uk/animated-d3-js-bar-chart-in-r  
+https://bookdown.org/yihui/rmarkdown-cookbook/d3.html  
+
+<b>Some R-specific references</b>  
+https://github.com/dreamRs/r2d3maps  
+https://www.r-bloggers.com/2020/05/superior-svg-graphics-rendering-in-r-and-why-it-matters/ 
+https://towardsdatascience.com/getting-r-and-d3-js-to-play-nicely-in-r-markdown-270e302a52d3  
+https://github.com/becausealice2/D3-in-Rmd
+https://bookdown.org/yihui/rmarkdown-cookbook/d3.html  
+
+
+
+<b>Some d3-specific references</b>  
+https://yihui.org/knitr/options/#plots    
+http://bl.ocks.org/d3indepth/b6d4845973089bc1012dec1674d3aff8    (d3 curve explorer)  
+https://observablehq.com/@d3/d3-path  (d3 path)  
+https://observablehq.com/@sxywu/introduction-to-svg-and-d3-js  
+https://gis.stackexchange.com/questions/260961/d3-projection-outputs-map-wrong  (why does my map projection look like scribbles?)  
+https://bl.ocks.org/johnwalley/e1d256b81e51da68f7feb632a53c3518  (sliders)  
+https://bl.ocks.org/d3noob/8dc93bce7e7200ab487d  (filtering)  
+https://www.npmjs.com/package/d3-simple-slider  (d3-simple-slider)  
+
